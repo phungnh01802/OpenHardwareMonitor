@@ -43,6 +43,8 @@ internal sealed partial class MainForm : Form
     private readonly PersistentSettings _settings;
     private readonly UserOption _showGadget;
     private readonly UserOption _hideMenu;
+    private readonly ToolStripMenuItem _driverMenuItem;
+    private readonly bool _driverEnabled;
     private readonly StartupManager _startupManager = new();
     private readonly SystemTray _systemTray;
     private readonly UpdateVisitor _updateVisitor = new();
@@ -54,7 +56,7 @@ internal sealed partial class MainForm : Form
     private DateTime _lastPowerResetTime;
     private DateTime _nextUpdateCheckTime;
 
-    public MainForm()
+    public MainForm(bool disableDriver = false)
     {
         InitializeComponent();
 
@@ -65,6 +67,10 @@ internal sealed partial class MainForm : Form
 
         _settings = new PersistentSettings();
         _settings.Load();
+
+        // WinRing0 is a kernel driver flagged by Windows Defender as a vulnerable
+        // driver. It can be disabled from the Options menu or with --no-driver.
+        _driverEnabled = !disableDriver && _settings.GetValue("ring0MenuItem", true);
 
         MinimumSize = new Size(300, 200);
         Text = Updater.ApplicationTitle;
@@ -119,6 +125,7 @@ internal sealed partial class MainForm : Form
         };
 
         _computer = new Computer(_settings);
+        _computer.IsRing0Enabled = _driverEnabled;
 
         _systemTray = new SystemTray(_computer, _settings);
         _systemTray.HideShowCommand += HideShowClick;
@@ -159,6 +166,18 @@ internal sealed partial class MainForm : Form
         _computer.HardwareAdded += HardwareAdded;
         _computer.HardwareRemoved += HardwareRemoved;
         _computer.Open(_settings.IsPortable);
+
+        _driverMenuItem = new ToolStripMenuItem
+        {
+            Name = "ring0MenuItem",
+            Text = "WinRing0 Driver",
+            CheckOnClick = true,
+            Checked = _driverEnabled,
+            ToolTipText = "Disable to avoid the Windows Defender 'Vulnerable Driver: WinNT/WinRing0' " +
+                          "detection. Requires a restart; low-level sensors will be unavailable."
+        };
+        _driverMenuItem.Click += DriverMenuItem_Click;
+        optionsMenuItem.DropDownItems.Insert(0, _driverMenuItem);
 
         backgroundUpdater.DoWork += BackgroundUpdater_DoWork;
         timer.Enabled = true;
@@ -991,6 +1010,22 @@ internal sealed partial class MainForm : Form
             _settings.SetValue("mainForm.Location.Y", Bounds.Y);
             _settings.SetValue("mainForm.Width", Bounds.Width);
             _settings.SetValue("mainForm.Height", Bounds.Height);
+        }
+    }
+
+    private void DriverMenuItem_Click(object sender, EventArgs e)
+    {
+        bool enabled = _driverMenuItem.Checked;
+        _settings.SetValue("ring0MenuItem", enabled);
+        _computer.IsRing0Enabled = enabled;
+
+        if (enabled != _driverEnabled)
+        {
+            MessageBox.Show(this,
+                "Restart OpenHardwareMonitor for the WinRing0 driver change to take effect.",
+                Updater.ApplicationTitle,
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
         }
     }
 

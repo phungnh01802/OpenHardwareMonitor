@@ -7,9 +7,11 @@ namespace OpenHardwareMonitor;
 internal static class Program
 {
     [STAThread]
-    public static void Main()
+    public static void Main(string[] args)
     {
         Crasher.Listen();
+
+        bool disableDriver = HasNoDriverArgument(args);
 
         if (!OSHelper.IsCompatible(false, out string errorMessage, out var fixAction))
         {
@@ -37,7 +39,7 @@ internal static class Program
 
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
-        using (MainForm form = new MainForm())
+        using (MainForm form = new MainForm(disableDriver))
         {
             form.FormClosed += delegate
             {
@@ -45,5 +47,26 @@ internal static class Program
             };
             Application.Run();
         }
+    }
+
+    // Allows starting the application without loading the WinRing0 kernel driver,
+    // which Windows Defender reports as "VulnerableDriver:WinNT/WinRing0".
+    private static bool HasNoDriverArgument(string[] args)
+    {
+        if (args == null)
+            return false;
+
+        foreach (string arg in args)
+        {
+            switch (arg?.Trim().ToLowerInvariant())
+            {
+                case "--no-driver":
+                case "--no-ring0":
+                case "-nd":
+                    return true;
+            }
+        }
+
+        return false;
     }
 }
