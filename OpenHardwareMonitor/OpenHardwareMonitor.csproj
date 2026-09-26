@@ -54,8 +54,8 @@
     <PlatformTarget>x86</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="SergiyE.Common" Version="1.*" />
-    <PackageReference Include="SergiyE.Common.UI" Version="1.*" />
+    <PackageReference Include="SergiyE.Common" Version="1.0.9577" />
+    <PackageReference Include="SergiyE.Common.UI" Version="1.0.9577" />
   </ItemGroup>
   <ItemGroup Condition=" '$(Configuration)' == 'Release'">
     <PackageReference Include="Costura.Fody" Version="4.1.0">

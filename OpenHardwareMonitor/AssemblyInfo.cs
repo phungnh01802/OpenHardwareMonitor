@@ -1,4 +1,5 @@
 ﻿global using sergiye.Common;
+global using OSHelper = sergiye.Common.OperatingSystemHelper;
 using System.Reflection;
 
 [assembly: AssemblyTitle("Open Hardware Monitor")]
